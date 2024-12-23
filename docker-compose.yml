@@ -1,0 +1,142 @@
+services:
+  mongo1:
+    build:
+      context: ./mongodb
+    hostname: mongo1
+    container_name: mongo1
+    restart: unless-stopped
+    volumes:
+      - mongo1_data:/data/db
+    environment:
+      - MONGODB_HOSTNAME=mongo1
+      - IS_PRIMARY=true
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+      - ADMIN_DATABASE=admin
+      - COMMON_DATABASE=commonDB
+      - COMMON_USERNAME=common
+      - COMMON_PASSWORD=password
+    healthcheck:
+      test: |
+        mongosh --quiet --eval '
+          try {
+            let status = rs.status();
+            if (!status.ok) throw new Error("Replica set not ok");
+            if (!status.members.some(m => m.stateStr === "PRIMARY")) throw new Error("No primary");
+            db.getSiblingDB("admin").auth("'"$$ADMIN_USERNAME"'", "'"$$ADMIN_PASSWORD"'");
+            db.getSiblingDB("'"$$COMMON_DATABASE"'").auth("'"$$COMMON_USERNAME"'", "'"$$COMMON_PASSWORD"'");
+            quit(0);
+          } catch(e) {
+            print(e);
+            quit(1);
+          }
+        '
+      start_period: 90s
+      interval: 10s
+      timeout: 30s
+      retries: 3
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "2"
+    #       memory: 2G
+    #     reservations:
+    #       cpus: "0.5"
+    #       memory: 512M
+    # ulimits:
+    #   nofile:
+    #     soft: 64000
+    #     hard: 64000
+
+  mongo2:
+    build:
+      context: ./mongodb
+    hostname: mongo2
+    container_name: mongo2
+    restart: unless-stopped
+    volumes:
+      - mongo2_data:/data/db
+    environment:
+      - MONGODB_HOSTNAME=mongo2
+      - IS_PRIMARY=false
+    depends_on:
+      - mongo1
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "2"
+    #       memory: 2G
+    #     reservations:
+    #       cpus: "0.5"
+    #       memory: 512M
+    # ulimits:
+    #   nofile:
+    #     soft: 64000
+    #     hard: 64000
+
+  mongo3:
+    build:
+      context: ./mongodb
+    hostname: mongo3
+    container_name: mongo3
+    restart: unless-stopped
+    volumes:
+      - mongo3_data:/data/db
+    environment:
+      - MONGODB_HOSTNAME=mongo3
+      - IS_PRIMARY=false
+    depends_on:
+      - mongo1
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "2"
+    #       memory: 2G
+    #     reservations:
+    #       cpus: "0.5"
+    #       memory: 512M
+    # ulimits:
+    #   nofile:
+    #     soft: 64000
+    #     hard: 64000
+
+  api:
+    depends_on:
+      mongo1:
+        condition: service_healthy
+    container_name: api
+    build:
+      context: .
+    environment:
+      - MONGODB_URI=mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from pymongo import MongoClient; MongoClient('${MONGODB_URI}').commonDB.command('ping')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: on-failure:5
+    # deploy:
+    #   restart_policy:
+    #     condition: on-failure
+    #     delay: 15s
+    #     max_attempts: 5
+    #     window: 120s
+    #   resources:
+    #     limits:
+    #       cpus: "1"
+    #       memory: 1G
+    #     reservations:
+    #       cpus: "0.25"
+    #       memory: 256M
+
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
