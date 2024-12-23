@@ -53,7 +53,7 @@ rs.initiate({
 ### Combining the above commands
 
 ```sh
-docker exec -it mongo1 mongo --eval 'rs.initiate({
+docker exec -it mongo1 mongosh --eval 'rs.initiate({
   _id: "rs0",
   members: [
     { _id: 0, host: "mongo1:27017", priority: 2 },
