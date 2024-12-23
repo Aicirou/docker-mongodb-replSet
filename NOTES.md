@@ -1,10 +1,10 @@
 # Configuration Checklist
 
-- [ ] Replica set name: rs0
-- [ ] Authentication database: admin
-- [ ] Application database: commonDB
-- [ ] Connection pooling configured
-- [ ] Health checks enabled
+- [x] Replica set name: rs0
+- [x] Authentication database: admin
+- [x] Application database: commonDB
+- [x] Connection pooling configured
+- [x] Health checks enabled
 
 # Troubleshooting Guide
 
@@ -23,6 +23,42 @@
 # Architecture Reference
 
 ## Container Structure
+
+```sh
+mongodb-docker-replset/
+├── mongo1 (Primary)
+├── mongo2 (Secondary)
+├── mongo3 (Secondary)
+└── api (Python Client)
+```
+
+## Security Setup
+
+- Keyfile authentication
+- Role-based access
+- Network isolation
+
+## Monitoring Points
+
+- Replica set health
+- Connection pool status
+- Operation latency
+
+## Production Checklist
+
+### Pre-deployment
+
+- [ ] Security configurations
+- [ ] Resource limits set
+- [ ] Backup strategy
+- [ ] Monitoring setup
+
+### Maintenance
+
+- [ ] Regular backups
+- [ ] Log rotation
+- [ ] Performance monitoring
+- [ ] Security updates
 
 ## Problem and Solution
 
