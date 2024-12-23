@@ -2,8 +2,8 @@ import express from "express"
 import { DatabaseConnection } from "./config/db_config.js"
 import { healthCheck } from "./utils/health.js"
 import { dbinfo } from "./utils/db_info.js"
-// import apiRoutes from "./routes/index.js"
 
+// Create express app
 const app = express()
 const port = 3000
 
@@ -13,8 +13,6 @@ app.use(express.urlencoded({ extended: true }))
 
 // MongoDB connection
 const db = new DatabaseConnection()
-
-// Route handlers (order matters)
 
 // Health check
 app.get("/health", async (req, res) => {
@@ -26,13 +24,10 @@ app.get("/", async (req, res) => {
   await dbinfo(req, res)
 })
 
-// API routes
-// app.use("/api", apiRoutes)
-
 // 404 handler
-// app.use((req, res) => {
-//   res.status(404).json({ error: "Not Found" })
-// })
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found" })
+})
 
 // Error handler
 app.use((err, req, res, next) => {
