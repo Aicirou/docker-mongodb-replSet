@@ -1,3 +1,504 @@
+# Configuration Checklist
+
+- [ ] Replica set name: rs0
+- [ ] Authentication database: admin
+- [ ] Application database: commonDB
+- [ ] Connection pooling configured
+- [ ] Health checks enabled
+
+# Troubleshooting Guide
+
+## Connection Issues
+
+- Check network connectivity
+- Verify credentials
+- Validate replica set status
+
+## Performance Issues
+
+- Monitor connection pool
+- Check query performance
+- Verify indices
+
+# Architecture Reference
+
+## Container Structure
+
+## Problem and Solution
+
+### Problem 1: Connection Error
+
+**Issue:** Connection to MongoDB fails with an error message.
+
+**Solution:**
+
+- Ensure MongoDB URI is correctly set in the environment variables.
+- Verify network connectivity and MongoDB service status.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    console.print("[green]Connected to MongoDB")
+```
+
+### Problem 2: Authentication Error
+
+**Issue:** Authentication to MongoDB fails with an error message.
+
+**Solution:**
+
+- Ensure the correct username and password are used in the connection string.
+- Verify the user exists in the MongoDB database and has the necessary roles.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    console.print("[green]Connected to MongoDB")
+```
+
+### Problem 3: Read Preference Error
+
+**Issue:** Error occurs when setting read preference in MongoDB operations.
+
+**Solution:**
+
+- Use `with_options()` to set read preferences at the collection level.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    db = client.get_database("commonDB")
+
+    collection = db.test.with_options(
+        read_preference=pymongo.ReadPreference.PRIMARY_PREFERRED
+    )
+    doc = collection.find_one({"name": "Test Document"})
+    console.print(f"[blue]Retrieved document: {doc}")
+```
+
+### Problem 4: Write Concern Error
+
+**Issue:** Error occurs when setting write concern in MongoDB operations.
+
+**Solution:**
+
+- Set write concern at the client configuration level.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(
+            MONGODB_URI,
+            w='majority',
+            journal=True
+        )
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    db = client.get_database("commonDB")
+
+    result = db.test.insert_one({"name": "Test Document"})
+    console.print("[green]Test document inserted successfully!")
+```
+
+### Problem 5: Retry Logic
+
+**Issue:** Transient errors occur during MongoDB operations.
+
+**Solution:**
+
+- Implement retry logic with exponential backoff.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+from functools import wraps
+import time
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+RETRY_ATTEMPTS = 3
+RETRY_DELAY = 1
+
+def retry_operation(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        last_error = None
+        for attempt in range(RETRY_ATTEMPTS):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                if attempt < RETRY_ATTEMPTS - 1:
+                    time.sleep(RETRY_DELAY * (attempt + 1))  # Exponential backoff
+        raise last_error
+    return wrapper
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+@retry_operation
+def perform_operation(db):
+    result = db.test.insert_one({"name": "Test Document"})
+    console.print("[green]Test document inserted successfully!")
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    db = client.get_database("commonDB")
+    perform_operation(db)
+```
+
+### Problem 6: Caching
+
+**Issue:** Repeated calls to MongoDB server info increase load.
+
+**Solution:**
+
+- Implement caching for server info retrieval.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+from cachetools import TTLCache, cached
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+server_info_cache = TTLCache(maxsize=100, ttl=60)  # Cache for 60 seconds
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+@cached(cache=server_info_cache)
+def get_server_info(client):
+    return client.server_info()
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    server_info = get_server_info(client)
+    console.print(f"[green]MongoDB Version: {server_info.get('version')}")
+```
+
+### Problem 7: Connection Pooling
+
+**Issue:** High latency due to frequent connection creation.
+
+**Solution:**
+
+- Implement connection pooling with optimal pool size.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(
+            MONGODB_URI,
+            maxPoolSize=50,
+            minPoolSize=10
+        )
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    console.print("[green]Connected to MongoDB")
+```
+
+### Problem 8: Proper Connection Cleanup
+
+**Issue:** Connections are not properly closed, leading to resource leaks.
+
+**Solution:**
+
+- Implement proper connection cleanup in a `finally` block.
+
+**Code Example:**
+
+```
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(MONGODB_URI)
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = None
+    try:
+        client = get_mongodb_connection()
+        console.print("[green]Connected to MongoDB")
+    finally:
+        if client:
+            client.close()
+            console.print("[green]Connection closed")
+```
+
+### Problem 9: Comprehensive Documentation
+
+**Issue:** Lack of comprehensive documentation for setup, maintenance, and troubleshooting.
+
+**Solution:**
+
+- Add a README.md file with detailed documentation.
+
+**Code Example:**
+
+```
+# MongoDB Connection and Operations
+
+## Setup
+
+1. Set the MongoDB URI in the environment variables:
+```
+
+export MONGODB_URI='mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB'
+
+```
+
+2. Install the required dependencies:
+```
+
+pip install pymongo rich cachetools
+
+```
+
+3. Run the script:
+```
+
+python main.py
+
+```
+
+## Troubleshooting
+
+### Connection Error
+- Ensure MongoDB URI is correctly set in the environment variables.
+- Verify network connectivity and MongoDB service status.
+
+### Authentication Error
+- Ensure the correct username and password are used in the connection string.
+- Verify the user exists in the MongoDB database and has the necessary roles.
+
+### Read Preference Error
+- Use `with_options()` to set read preferences at the collection level.
+
+### Write Concern Error
+- Set write concern at the client configuration level.
+
+### Retry Logic
+- Implement retry logic with exponential backoff.
+
+### Caching
+- Implement caching for server info retrieval.
+
+### Connection Pooling
+- Implement connection pooling with optimal pool size.
+
+### Proper Connection Cleanup
+- Implement proper connection cleanup in a `finally` block.
+```
+
+### Problem 10: OOP Refactoring
+
+1. Clear separation of concerns with dedicated classes
+2. Configuration management
+3. Cached operations
+4. Type hints
+5. Comprehensive documentation
+6. Development/Production configuration separation
+7. Improved error handling
+
+### Problem 11: Issue with Connection Timeout
+
+**Issue:** Connection to MongoDB times out, causing operations to fail.
+
+**Solution:**
+
+- Increase the connection timeout settings in the MongoDB client configuration.
+
+**Code Example:**
+
+```python
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(
+            MONGODB_URI,
+            connectTimeoutMS=20000,  # Increased timeout
+            serverSelectionTimeoutMS=30000  # Increased timeout
+        )
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    console.print("[green]Connected to MongoDB")
+```
+
+### Problem 12: Issue with Connection Pool Size
+
+**Issue:** High latency due to suboptimal connection pool size.
+
+**Solution:**
+
+- Adjust the connection pool size settings in the MongoDB client configuration.
+
+**Code Example:**
+
+```python
+import os
+import pymongo
+from rich.console import Console
+
+console = Console()
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
+
+def get_mongodb_connection():
+    try:
+        client = pymongo.MongoClient(
+            MONGODB_URI,
+            maxPoolSize=100,  # Increased pool size
+            minPoolSize=20  # Increased minimum pool size
+        )
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        console.print(f"[red]Connection Error: {e}")
+        raise
+
+if __name__ == "__main__":
+    client = get_mongodb_connection()
+    console.print("[green]Connected to MongoDB")
+```
+
+All advanced configurations are now commented out but preserved for production use. The README provides complete documentation for setup, maintenance, and troubleshooting.
+
+## Summary
+
 Aicirou: reafctor project files for better performance
 
 GitHub Copilot: I'll help refactor the project files for better performance. Here's a step-by-step solution:
@@ -1038,477 +1539,4 @@ if __name__ == "__main__":
     main()
 ```
 
-### notes.md
-
-## Problem and Solution
-
-### Problem 1: Connection Error
-
-**Issue:** Connection to MongoDB fails with an error message.
-
-**Solution:**
-
-- Ensure MongoDB URI is correctly set in the environment variables.
-- Verify network connectivity and MongoDB service status.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    console.print("[green]Connected to MongoDB")
-```
-
-### Problem 2: Authentication Error
-
-**Issue:** Authentication to MongoDB fails with an error message.
-
-**Solution:**
-
-- Ensure the correct username and password are used in the connection string.
-- Verify the user exists in the MongoDB database and has the necessary roles.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    console.print("[green]Connected to MongoDB")
-```
-
-### Problem 3: Read Preference Error
-
-**Issue:** Error occurs when setting read preference in MongoDB operations.
-
-**Solution:**
-
-- Use `with_options()` to set read preferences at the collection level.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    db = client.get_database("commonDB")
-
-    collection = db.test.with_options(
-        read_preference=pymongo.ReadPreference.PRIMARY_PREFERRED
-    )
-    doc = collection.find_one({"name": "Test Document"})
-    console.print(f"[blue]Retrieved document: {doc}")
-```
-
-### Problem 4: Write Concern Error
-
-**Issue:** Error occurs when setting write concern in MongoDB operations.
-
-**Solution:**
-
-- Set write concern at the client configuration level.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(
-            MONGODB_URI,
-            w='majority',
-            journal=True
-        )
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    db = client.get_database("commonDB")
-
-    result = db.test.insert_one({"name": "Test Document"})
-    console.print("[green]Test document inserted successfully!")
-```
-
-### Problem 5: Retry Logic
-
-**Issue:** Transient errors occur during MongoDB operations.
-
-**Solution:**
-
-- Implement retry logic with exponential backoff.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-from functools import wraps
-import time
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-RETRY_ATTEMPTS = 3
-RETRY_DELAY = 1
-
-def retry_operation(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        last_error = None
-        for attempt in range(RETRY_ATTEMPTS):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                last_error = e
-                if attempt < RETRY_ATTEMPTS - 1:
-                    time.sleep(RETRY_DELAY * (attempt + 1))  # Exponential backoff
-        raise last_error
-    return wrapper
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-@retry_operation
-def perform_operation(db):
-    result = db.test.insert_one({"name": "Test Document"})
-    console.print("[green]Test document inserted successfully!")
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    db = client.get_database("commonDB")
-    perform_operation(db)
-```
-
-### Problem 6: Caching
-
-**Issue:** Repeated calls to MongoDB server info increase load.
-
-**Solution:**
-
-- Implement caching for server info retrieval.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-from cachetools import TTLCache, cached
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-server_info_cache = TTLCache(maxsize=100, ttl=60)  # Cache for 60 seconds
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-@cached(cache=server_info_cache)
-def get_server_info(client):
-    return client.server_info()
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    server_info = get_server_info(client)
-    console.print(f"[green]MongoDB Version: {server_info.get('version')}")
-```
-
-### Problem 7: Connection Pooling
-
-**Issue:** High latency due to frequent connection creation.
-
-**Solution:**
-
-- Implement connection pooling with optimal pool size.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(
-            MONGODB_URI,
-            maxPoolSize=50,
-            minPoolSize=10
-        )
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    console.print("[green]Connected to MongoDB")
-```
-
-### Problem 8: Proper Connection Cleanup
-
-**Issue:** Connections are not properly closed, leading to resource leaks.
-
-**Solution:**
-
-- Implement proper connection cleanup in a `finally` block.
-
-**Code Example:**
-
-```
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(MONGODB_URI)
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = None
-    try:
-        client = get_mongodb_connection()
-        console.print("[green]Connected to MongoDB")
-    finally:
-        if client:
-            client.close()
-            console.print("[green]Connection closed")
-```
-
-### Problem 9: Comprehensive Documentation
-
-**Issue:** Lack of comprehensive documentation for setup, maintenance, and troubleshooting.
-
-**Solution:**
-
-- Add a README.md file with detailed documentation.
-
-**Code Example:**
-
-```
-# MongoDB Connection and Operations
-
-## Setup
-
-1. Set the MongoDB URI in the environment variables:
-```
-
-export MONGODB_URI='mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB'
-
-```
-
-2. Install the required dependencies:
-```
-
-pip install pymongo rich cachetools
-
-```
-
-3. Run the script:
-```
-
-python main.py
-
-```
-
-## Troubleshooting
-
-### Connection Error
-- Ensure MongoDB URI is correctly set in the environment variables.
-- Verify network connectivity and MongoDB service status.
-
-### Authentication Error
-- Ensure the correct username and password are used in the connection string.
-- Verify the user exists in the MongoDB database and has the necessary roles.
-
-### Read Preference Error
-- Use `with_options()` to set read preferences at the collection level.
-
-### Write Concern Error
-- Set write concern at the client configuration level.
-
-### Retry Logic
-- Implement retry logic with exponential backoff.
-
-### Caching
-- Implement caching for server info retrieval.
-
-### Connection Pooling
-- Implement connection pooling with optimal pool size.
-
-### Proper Connection Cleanup
-- Implement proper connection cleanup in a `finally` block.
-```
-
-### Problem 10: OOP Refactoring
-
-1. Clear separation of concerns with dedicated classes
-2. Configuration management
-3. Cached operations
-4. Type hints
-5. Comprehensive documentation
-6. Development/Production configuration separation
-7. Improved error handling
-
-### Problem 11: Issue with Connection Timeout
-
-**Issue:** Connection to MongoDB times out, causing operations to fail.
-
-**Solution:**
-
-- Increase the connection timeout settings in the MongoDB client configuration.
-
-**Code Example:**
-
-```python
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(
-            MONGODB_URI,
-            connectTimeoutMS=20000,  # Increased timeout
-            serverSelectionTimeoutMS=30000  # Increased timeout
-        )
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    console.print("[green]Connected to MongoDB")
-```
-
-### Problem 12: Issue with Connection Pool Size
-
-**Issue:** High latency due to suboptimal connection pool size.
-
-**Solution:**
-
-- Adjust the connection pool size settings in the MongoDB client configuration.
-
-**Code Example:**
-
-```python
-import os
-import pymongo
-from rich.console import Console
-
-console = Console()
-
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://common:password@mongo1:27017,mongo2:27017,mongo3:27017/commonDB?replicaSet=rs0&authSource=commonDB')
-
-def get_mongodb_connection():
-    try:
-        client = pymongo.MongoClient(
-            MONGODB_URI,
-            maxPoolSize=100,  # Increased pool size
-            minPoolSize=20  # Increased minimum pool size
-        )
-        client.admin.command('ping')
-        return client
-    except Exception as e:
-        console.print(f"[red]Connection Error: {e}")
-        raise
-
-if __name__ == "__main__":
-    client = get_mongodb_connection()
-    console.print("[green]Connected to MongoDB")
-```
-
-All advanced configurations are now commented out but preserved for production use. The README provides complete documentation for setup, maintenance, and troubleshooting.
+### END
