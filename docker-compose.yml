@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  mongo1:
+    image: mongo:latest
+    container_name: mongo1
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data1:/data/db
+    command: mongod --replSet rs0 --bind_ip 0.0.0.0
+    networks:
+      - mongo-cluster
+
+  mongo2:
+    image: mongo:latest
+    container_name: mongo2
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data2:/data/db
+    command: mongod --replSet rs0 --bind_ip 0.0.0.0
+    networks:
+      - mongo-cluster
+
+  mongo3:
+    image: mongo:latest
+    container_name: mongo3
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb_data3:/data/db
+    command: mongod --replSet rs0 --bind_ip 0.0.0.0
+    networks:
+      - mongo-cluster
+
+networks:
+  mongo-cluster:
+    driver: bridge
+
+volumes:
+  mongodb_data1:
+  mongodb_data2:
+  mongodb_data3:
