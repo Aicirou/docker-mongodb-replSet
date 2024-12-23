@@ -1,4 +1,3 @@
-````markdown
 # MongoDB Replica Set with Docker
 
 A production-ready MongoDB replica set implementation using Docker with Python client integration.
@@ -28,6 +27,7 @@ A production-ready MongoDB replica set implementation using Docker with Python c
 git clone <repository-url>
 cd mongodb-docker-replset
 ```
+
 ````
 
 2. Start the MongoDB cluster
@@ -122,3 +122,4 @@ Common issues and solutions:
 3. Commit changes
 4. Push to the branch
 5. Create a Pull Request
+````
