@@ -28,8 +28,6 @@ git clone <repository-url>
 cd mongodb-docker-replset
 ```
 
-````
-
 2. Start the MongoDB cluster
 
 ```bash
@@ -122,4 +120,12 @@ Common issues and solutions:
 3. Commit changes
 4. Push to the branch
 5. Create a Pull Request
-````
+
+## References
+
+- [MongoDB Replica Set](https://docs.mongodb.com/manual/replication/)
+- [Docker Compose](https://docs.docker.com/compose/)
+- [PyMongo Documentation](https://pymongo.readthedocs.io/en/stable/)
+- [MongoDB Security](https://docs.mongodb.com/manual/security/)
+- [Python Logging](https://docs.python.org/3/library/logging.html)
+- [Docker Health Checks](https://docs.docker.com/engine/reference/builder/#healthcheck)
