@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 class DatabaseConnection {
   constructor() {
     this.uri =
-      "mongodb://localhost:27017,localhost:27018,localhost:27019/demo?replicaSet=rs0"
+      "mongodb://mongo1:27017,mongo2:27018,mongo3:27019/demo?replicaSet=rs0"
     this.options = {
       readPreference: "secondaryPreferred",
       serverSelectionTimeoutMS: 5000,

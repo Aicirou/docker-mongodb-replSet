@@ -1,5 +1,19 @@
 version: "3.8"
 services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    networks:
+      - mongo-cluster
+
   mongo1:
     image: mongo:latest
     container_name: mongo1

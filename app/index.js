@@ -1,8 +1,8 @@
 import express from "express"
 import { DatabaseConnection } from "./config/db_config.js"
-// import apiRoutes from "./routes/index.js"
 import { healthCheck } from "./utils/health.js"
 import { dbinfo } from "./utils/db_info.js"
+// import apiRoutes from "./routes/index.js"
 
 const app = express()
 const port = 3000

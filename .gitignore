@@ -2,7 +2,7 @@
 app/node_modules
 dist
 app/package-lock.json
-
+app/routes
 # Environment variables
 .env
 .env.local
