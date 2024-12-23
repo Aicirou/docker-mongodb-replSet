@@ -6,79 +6,48 @@ services:
     container_name: mongo1
     ports:
       - 27017:27017
-    environment:
-      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
     volumes:
       - mongo1-data:/data/db
-      - ./scripts/replSet.json:/var/logs/replSet.json
-      - ./scripts/mongo-init.sh:/var/logs/mongo-init.sh
-      - ./scripts/mongo-entrypoint.sh:/var/logs/mongo-entrypoint.sh
-    entrypoint: ["/var/logs/mongo-entrypoint.sh"]
-    depends_on:
-      - mongo2
-      - mongo3
+      - ./scripts:/scripts
+    entrypoint: ["/scripts/mongo-entrypoint.sh"]
     networks:
       - mongo-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "bash",
-          "-c",
-          'mongosh --quiet --eval ''db.adminCommand("ping")'' && mongosh --quiet --eval ''rs.status().ok''',
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 30s
 
   mongo2:
     image: mongo:latest
     container_name: mongo2
     ports:
       - 27018:27017
-    environment:
-      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
     volumes:
       - mongo2-data:/data/db
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     networks:
       - mongo-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "bash",
-          "-c",
-          'mongosh --quiet --eval ''db.adminCommand("ping")''',
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 40s
 
-  mongo3: # arbiter node
+  mongo3:
     image: mongo:latest
     container_name: mongo3
     ports:
       - 27019:27017
-    environment:
-      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     networks:
       - mongo-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "bash",
-          "-c",
-          'mongosh --quiet --eval ''db.adminCommand("ping")''',
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 40s
 
 volumes:
   mongo1-data:

@@ -1,0 +1,33 @@
+name: Docker Compose Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Start containers
+        run: docker compose up -d
+
+      - name: Wait for service startup
+        run: sleep 30
+
+      - name: Check running containers
+        run: docker compose ps
+
+      - name: Check mongo1 logs
+        run: docker compose logs mongo1
+
+      - name: Test replica set status
+        run: |
+          docker compose exec -T mongo1 mongosh --quiet --eval "rs.status().ok"
+
+      - name: Cleanup
+        run: docker compose down -v

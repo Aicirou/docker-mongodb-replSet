@@ -1,2 +1,22 @@
 app/node_modules
 app/package-lock.json
+
+# MongoDB data
+data/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+# .env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
